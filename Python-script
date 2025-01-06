@@ -1,0 +1,61 @@
+from flask import Flask, request, jsonify
+import random
+import uuid
+import requests
+import sys
+
+# Create a Flask application
+app = Flask(__name__)
+
+# Step 1: Fetch JSON data from the given URL
+url = "https://whatismyip.callgoose.com/devops/devops.json"
+response = requests.get(url)
+
+# Check if the GET request was successful
+if response.status_code != 200:
+    print(f"Failed to fetch data from {url}, status code: {response.status_code}")
+    sys.exit(1)
+
+# Parse the response JSON data
+data = response.json()
+
+# Step 2: Create a route to accept user inputs (name, language, bio)
+# Example: /add_user?name=John&language=English&bio=Developer
+@app.route('/add_user', methods=['GET'])
+def add_user():
+    name = request.args.get('name', default="John Mathew", type=str)
+    language = request.args.get('language', default="English", type=str)
+    bio = request.args.get('bio', default="My name is John Mathew. I'm an IT professional", type=str)
+
+    # Step 3: Generate a random ID (UUID) and version (random float)
+    user_id = str(uuid.uuid4())  # Random UUID
+    version = round(random.uniform(1.0, 10.0), 2)  # Random version between 1.0 and 10.0
+
+    # Step 4: Append the new user data to the "dummy_data" list
+    new_user = {
+        "name": name,
+        "language": language,
+        "id": user_id,
+        "bio": bio,
+        "version": version
+    }
+
+    # Append the new user to the existing data
+    data['dummy_data'].append(new_user)
+
+    # Step 5: Send the modified JSON data to the POST endpoint
+    post_url = "https://httpbin.org/post"
+    headers = {'Content-Type': 'application/json'}
+    post_response = requests.post(post_url, json=data, headers=headers)
+
+    # Check if the POST request was successful
+    if post_response.status_code != 200:
+        return f"Failed to send data to {post_url}, status code: {post_response.status_code}", 500
+
+    # Return the JSON response
+    return jsonify(post_response.json())
+
+# Step 6: Run the Flask app
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=80)
+
